@@ -1,0 +1,35 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: lab2-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caruser
+      POSTGRES_PASSWORD: carpass
+      POSTGRES_DB: cardb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - db-internal
+
+  crud-service:
+    build: ./crud_service
+    container_name: lab2-crud
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://caruser:carpass@db:5432/cardb
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+    networks:
+      - db-internal
+      - default
+
+networks:
+  db-internal:
+    internal: true
+
+volumes:
+  pgdata:
