@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: lab1-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caruser
+      POSTGRES_PASSWORD: carpass
+      POSTGRES_DB: cardb
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  pgdata:
