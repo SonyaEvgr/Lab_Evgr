@@ -1,0 +1,98 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: lab6-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: caruser
+      POSTGRES_PASSWORD: carpass
+      POSTGRES_DB: cardb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - db-internal
+
+  minio:
+    image: minio/minio:latest
+    container_name: lab6-minio
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    volumes:
+      - minio-data:/data
+    networks:
+      - storage-internal
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: lab6-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    networks:
+      - mq-net
+      - default
+
+  crud-service:
+    build: ./crud_service
+    container_name: lab6-crud
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://caruser:carpass@db:5432/cardb
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: reports
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - minio
+      - rabbitmq
+    networks:
+      - db-internal
+      - storage-internal
+      - mq-net
+      - default
+
+  report-service:
+    build: ./report_service
+    container_name: lab6-report
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://caruser:carpass@db:5432/cardb
+      RABBITMQ_URL: amqp://guest:guest@rabbitmq:5672/
+      MINIO_ENDPOINT: minio:9000
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+      MINIO_BUCKET: reports
+    depends_on:
+      - db
+      - minio
+      - rabbitmq
+    networks:
+      - db-internal
+      - storage-internal
+      - mq-net
+
+networks:
+  db-internal:
+    internal: true
+  storage-internal:
+    internal: true
+  mq-net:
+
+volumes:
+  pgdata:
+  minio-data:
+  rabbitmq-data:
