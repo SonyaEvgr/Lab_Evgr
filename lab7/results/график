@@ -1,0 +1,35 @@
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# Загружаем CSV
+df = pd.read_csv("benchmark_results.csv")
+
+# Создаем фигуру
+plt.figure(figsize=(10, 6))
+
+# Сценарии
+scenarios = df['scenario'].unique()
+
+# Рисуем точки для каждого сценария
+for scenario in scenarios:
+    data = df[df['scenario'] == scenario]
+    plt.plot(
+        data['threads'], 
+        data['total_requests'], 
+        marker='o', 
+        linestyle='-', 
+        label=scenario
+    )
+
+# Логарифмическая шкала
+plt.xscale('log')
+plt.yscale('log')
+
+# Подписи
+plt.xlabel('Потоки (threads)')
+plt.ylabel('Количество запросов (total_requests)')
+plt.title('Бенчмарк: количество потоков vs. запросы')
+plt.legend()
+plt.grid(True, which="both", ls="--", linewidth=0.5)
+
+plt.show()
